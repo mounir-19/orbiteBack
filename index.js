@@ -15,6 +15,8 @@ const ORIGINS = [
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:4173',
+    'https://orbite-platform.netlify.app'
+
 ];
 
 // ── Socket.IO ─────────────────────────────────────────────────────────────────
