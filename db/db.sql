@@ -55,7 +55,6 @@ CREATE INDEX idx_user_domain ON "user" (domain);
 --  TABLE: student
 --  Extends user for role = 'student'
 
-
 CREATE TABLE student (
     user_id UUID PRIMARY KEY REFERENCES "user" (id) ON DELETE CASCADE,
     cv_url TEXT,
@@ -151,6 +150,39 @@ CREATE INDEX idx_project_domain ON project (service_type);
 
 --  TABLE: application
 --  Student application to a project
+-- ── CONVERSATIONS ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS conversation (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    user_a UUID NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    user_b UUID NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    project_id UUID REFERENCES project (id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (user_a, user_b, project_id)
+);
+
+-- ── MESSAGES ──────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS message (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    conversation_id UUID NOT NULL REFERENCES conversation (id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- indexes for fast history + unread queries
+CREATE INDEX IF NOT EXISTS idx_message_conversation ON message (
+    conversation_id,
+    created_at DESC
+);
+
+CREATE INDEX IF NOT EXISTS idx_message_unread ON message (conversation_id, read)
+WHERE
+    read = FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_conversation_user_a ON conversation (user_a);
+
+CREATE INDEX IF NOT EXISTS idx_conversation_user_b ON conversation (user_b);
 
 CREATE TABLE application (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
@@ -308,7 +340,6 @@ CREATE INDEX idx_payment_project ON payment (project_id);
 CREATE INDEX idx_payment_recipient ON payment (recipient_id);
 
 CREATE INDEX idx_payment_status ON payment (status);
-
 
 --  TABLE: ai_log
 --  Audit log for every AI agent API call
